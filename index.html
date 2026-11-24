@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PMIT Weather Station</title>
+<style>
+:root{--ink:#000;--mute:rgba(0,0,0,.75);--glass:rgba(255,255,255,.45);--line:rgba(0,0,0,.25);--accent:#ffd36b;--btn:rgba(255,255,255,.6);--btnh:rgba(255,255,255,.85);--tile:rgba(255,255,255,.4);--ok:#0b6b2c;--bad:#a8190f;--tsh:0 2px 14px rgba(255,255,255,.55)}
+body.night{--ink:#fff;--mute:rgba(255,255,255,.78);--glass:rgba(10,20,40,.4);--line:rgba(255,255,255,.28);--btn:rgba(255,255,255,.14);--btnh:rgba(255,255,255,.28);--tile:rgba(255,255,255,.1);--ok:#9ff0b5;--bad:#ffb0a0;--tsh:0 2px 14px rgba(0,0,0,.5)}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--ink);transition:background 1.6s;background:linear-gradient(#4a90d9,#a6d4f5);min-height:100vh}
+body.clear{background:linear-gradient(#5fa8ee,#bfe3ff)}
+body.hot{background:linear-gradient(#e8742a,#ffc65a)}
+body.cloudy{background:linear-gradient(#a3b0bd,#d6dde4)}
+body.rain{background:linear-gradient(#8c9fb3,#c0ccd8)}
+body.storm{background:linear-gradient(#6f7d8f,#a7b3c0)}
+body.snow{background:linear-gradient(#9dbbd8,#e6f0f8)}
+body.fog{background:linear-gradient(#b4bcc3,#dde1e5)}
+body.night.clear{background:linear-gradient(#07102a,#1d3260)}
+body.night.cloudy{background:linear-gradient(#1a2230,#3a4658)}
+body.night.rain{background:linear-gradient(#10161f,#2b3646)}
+body.night.storm{background:linear-gradient(#0a0d14,#252d3b)}
+body.night.snow{background:linear-gradient(#18243a,#4a5f7e)}
+body.night.fog{background:linear-gradient(#222831,#4a525c)}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+main{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:20px 16px 40px;display:grid;gap:16px;grid-template-columns:repeat(12,1fr)}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+header{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:space-between;align-items:center}
+.title{grid-column:1/-1;text-align:center;font-size:clamp(1.9rem,6vw,3.6rem);font-weight:800;letter-spacing:.02em;line-height:1.1;padding:8px 0 2px;text-shadow:var(--tsh)}
+.clock{font-size:1.9rem;font-weight:300;font-variant-numeric:tabular-nums}
+.date{color:var(--mute);font-size:.9rem}
+.status{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:.78rem;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.bad{color:var(--bad);border-color:var(--bad)}
+.out{grid-column:span 7}.inn{grid-column:span 5}.stats{grid-column:span 12;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}.forecast{grid-column:span 7}.cal{grid-column:span 5}
+.label{color:var(--mute);font-size:.9rem;margin-bottom:6px}
+.big{font-size:clamp(3.6rem,10vw,6.4rem);font-weight:200;line-height:1}
+.big sup{font-size:.35em;font-weight:300;vertical-align:top;position:relative;top:.35em}
+.cond{font-size:1.3rem;margin-top:8px}.sub{color:var(--mute);margin-top:4px}
+.inn .big{font-size:clamp(3rem,8vw,4.8rem)}
+.bar{height:6px;border-radius:6px;background:var(--line);margin-top:14px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width 1s}
+.stat b{display:block;font-size:1.5rem;font-weight:400;margin-top:4px}
+.days{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px}
+.day{text-align:center;padding:12px 4px;border-radius:12px;background:var(--tile)}
+.day span{display:block;font-size:.85rem;color:var(--mute)}.day em{font-style:normal;font-size:1.6rem;display:block;margin:6px 0}
+.day small{font-size:.85rem}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ch button,.demo button{background:var(--btn);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.85rem}
+.ch button:hover,.demo button:hover{background:var(--btnh)}
+.ch button:focus-visible,.demo button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.grid7 .h{font-size:.75rem;color:var(--mute);padding:4px 0}
+.grid7 .d{padding:8px 0;border-radius:10px;font-size:.92rem}
+.grid7 .d.o{opacity:.35}.grid7 .d.t{background:var(--accent);color:#000;font-weight:700}
+.cfgrow{display:flex;gap:8px;flex-wrap:wrap}
+.cfgrow input{flex:1;min-width:180px;background:var(--btn);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font:inherit}
+.cfgrow input:focus-visible{outline:2px solid var(--accent)}
+#cfgBtn,#saveIp{background:var(--btn);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.85rem}
+#cfgBtn{border-radius:99px;padding:4px 10px;font-size:.78rem;color:var(--mute)}
+.demo{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+.demo button.on{background:var(--accent);color:#000;border-color:var(--accent)}
+.demo span{color:var(--mute);font-size:.85rem}
+@media(max-width:860px){.out,.inn,.forecast,.cal{grid-column:1/-1}}
+@media(max-width:480px){main{padding:12px 10px 30px;gap:12px}.card{padding:16px}.days{gap:4px}.day em{font-size:1.3rem}}
+@media(prefers-reduced-motion:reduce){#fx{display:none}}
+</style>
+</head>
+<body class="clear">
+<canvas id="fx" aria-hidden="true"></canvas>
+<main>
+  <h1 class="title">PMIT Weather Station</h1>
+  <header class="card">
+    <div class="date" id="date"></div>
+    <div class="clock" id="clock">--:--</div>
+    <div class="status"><span class="chip" id="sApi">Outside: connecting</span><span class="chip" id="sDht">Inside: connecting</span><span class="chip" id="sSeason"></span><button id="cfgBtn" aria-expanded="false">⚙ Sensor</button></div>
+  </header>
+
+  <section class="card" id="cfgPanel" hidden style="grid-column:1/-1">
+    <div class="label">Sensor source: leave empty to use the Firebase URL from the code, or enter an ESP8266 IP / full https URL</div>
+    <div class="cfgrow"><input id="espIp" placeholder="optional: 192.168.0.105" aria-label="Sensor IP or URL"><button id="saveIp">Save and test</button></div>
+    <div class="sub" id="cfgMsg"></div>
+    </section>
+
+  <section class="card out" aria-live="polite">
+    <div class="label">Outside temperature</div>
+    <div class="big"><span id="oT">--</span><sup>°C</sup></div>
+    <div class="cond" id="oC">Loading…</div>
+    <div class="sub" id="oF"></div>
+  </section>
+
+  <section class="card inn">
+    <div class="label">Inside temperature (DHT11)</div>
+    <div class="big"><span id="iT">--</span><sup>°C</sup></div>
+    <div class="sub">Humidity <b id="iH">--</b>%</div>
+    <div class="bar"><i id="iBar"></i></div>
+    <div class="sub" id="iNote"></div>
+    <div class="sub" id="iMM"></div>
+  </section>
+
+  <section class="stats">
+    <div class="card stat"><div class="label">Outside humidity</div><b id="oH">--</b></div>
+    <div class="card stat"><div class="label">Wind</div><b id="oW">--</b></div>
+    <div class="card stat"><div class="label">Pressure</div><b id="oP">--</b></div>
+    <div class="card stat"><div class="label">Temperature gap (in − out)</div><b id="diff">--</b></div>
+    <div class="card stat"><div class="label">Inside humidity</div><b id="iH2">--</b></div>
+  </section>
+
+  <section class="card forecast"><div class="label">5-day forecast</div><div class="days" id="days"></div></section>
+
+  <section class="card cal">
+    <div class="ch"><button id="prev" aria-label="Previous month">‹</button><strong id="mTitle"></strong><button id="next" aria-label="Next month">›</button></div>
+    <div class="grid7" id="calGrid"></div>
+  </section>
+
+  <section class="demo" aria-label="Preview animations">
+    <span>Preview scene:</span>
+  </section>
+</main>
+
+<script>
+/* ===== SETTINGS: edit these ===== */
+const CFG={
+  city:"Bhubaneswar", lat:20.2961, lon:85.8245,        // your location
+  fbUrl:"https://weather-report-f24be-default-rtdb.asia-southeast1.firebasedatabase.app/weather.json",  // Firebase cloud reading (works on Netlify / https)
+  staleAfter:90e3,                                       // treat the sensor as offline if no update for 90 s
+  dhtUrl:"http://192.168.1.50/data",                     // ESP32/ESP8266 endpoint -> {"temperature":28.4,"humidity":55}
+  weatherEvery:2*60e3, dhtEvery:5e3
+};
+/* ================================ */
+const $=id=>document.getElementById(id);
+const WMO={0:["Clear sky","☀️"],1:["Mostly clear","🌤️"],2:["Partly cloudy","⛅"],3:["Overcast","☁️"],45:["Fog","🌫️"],48:["Rime fog","🌫️"],51:["Light drizzle","🌦️"],53:["Drizzle","🌦️"],55:["Heavy drizzle","🌧️"],61:["Light rain","🌧️"],63:["Rain","🌧️"],65:["Heavy rain","🌧️"],71:["Light snow","🌨️"],73:["Snow","❄️"],75:["Heavy snow","❄️"],77:["Snow grains","❄️"],80:["Rain showers","🌦️"],81:["Rain showers","🌧️"],82:["Violent showers","🌧️"],85:["Snow showers","🌨️"],86:["Snow showers","🌨️"],95:["Thunderstorm","⛈️"],96:["Thunderstorm, hail","⛈️"],99:["Thunderstorm, hail","⛈️"]};
+const info=c=>WMO[c]||WMO[Math.floor(c/10)*10]||["Unknown","🌡️"];
+function sceneFor(code,temp,isDay){
+  let t="clear";
+  if([45,48].includes(code))t="fog";
+  else if(code>=95)t="storm";
+  else if([71,73,75,77,85,86].includes(code))t="snow";
+  else if(code>=51)t="rain";
+  else if(code==3||code==2)t="cloudy";
+  if((t=="clear"||t=="cloudy")&&temp<=3)t="snow";          // freezing -> snowfall
+  if(t=="clear"&&temp>=32&&isDay)t="hot";                  // hot summer day -> strong sun
+  return{type:t,night:!isDay};
+}
+function season(d,lat){
+  const m=d.getMonth(),n=[ "Winter","Winter","Spring","Spring","Spring","Summer","Summer","Summer","Autumn","Autumn","Autumn","Winter"][m];
+  if(lat>=0)return n;return{Winter:"Summer",Summer:"Winter",Spring:"Autumn",Autumn:"Spring"}[n];
+}
+let live={code:0,temp:28,isDay:true},override=null,nightPrev=false;
+
+/* ---------- Clock + calendar ---------- */
+function tick(){const d=new Date();$("clock").textContent=d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  $("date").textContent=d.toLocaleDateString([],{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  $("sSeason").textContent=season(d,CFG.lat)+" season"}
+setInterval(tick,1000);tick();
+let view=new Date();view.setDate(1);
+function cal(){
+  const y=view.getFullYear(),m=view.getMonth(),now=new Date();
+  $("mTitle").textContent=view.toLocaleDateString([],{month:"long",year:"numeric"});
+  let h=["S","M","T","W","T","F","S"].map(x=>`<div class="h">${x}</div>`).join("");
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),prev=new Date(y,m,0).getDate();
+  for(let i=first-1;i>=0;i--)h+=`<div class="d o">${prev-i}</div>`;
+  for(let d=1;d<=dim;d++){const t=d==now.getDate()&&m==now.getMonth()&&y==now.getFullYear();h+=`<div class="d${t?" t":""}">${d}</div>`}
+  const rest=(7-((first+dim)%7))%7;for(let i=1;i<=rest;i++)h+=`<div class="d o">${i}</div>`;
+  $("calGrid").innerHTML=h}
+$("prev").onclick=()=>{view.setMonth(view.getMonth()-1);cal()};
+$("next").onclick=()=>{view.setMonth(view.getMonth()+1);cal()};cal();
+
+/* ---------- Storage helper ---------- */
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+
+/* ---------- Outside weather (Open-Meteo, no API key) ---------- */
+function setChip(id,ok,txt){const e=$(id);e.className="chip "+(ok?"ok":"bad");e.textContent=txt}
+async function loadWeather(){
+  try{
+    const u=`https://api.open-meteo.com/v1/forecast?latitude=${CFG.lat}&longitude=${CFG.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5`;
+    const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw 0;const j=await r.json(),c=j.current;
+    live={code:c.weather_code,temp:c.temperature_2m,isDay:!!c.is_day};
+    $("oT").textContent=Math.round(c.temperature_2m);$("oC").textContent=info(c.weather_code)[1]+" "+info(c.weather_code)[0];
+    $("oF").textContent="Feels like "+Math.round(c.apparent_temperature)+"°C · data time "+String(c.time).slice(11,16)+" · checked "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    $("oH").textContent=c.relative_humidity_2m+"%";$("oW").textContent=Math.round(c.wind_speed_10m)+" km/h";$("oP").textContent=Math.round(c.surface_pressure)+" hPa";
+    $("days").innerHTML=j.daily.time.map((t,i)=>`<div class="day"><span>${i?new Date(t).toLocaleDateString([],{weekday:"short"}):"Today"}</span><em>${info(j.daily.weather_code[i])[1]}</em><small>${Math.round(j.daily.temperature_2m_max[i])}° / ${Math.round(j.daily.temperature_2m_min[i])}°</small></div>`).join("");
+    setChip("sApi",true,"Outside: live");
+  }catch(e){
+    setChip("sApi",false,"Outside: offline (demo data)");
+    live={code:2,temp:31,isDay:new Date().getHours()>6&&new Date().getHours()<18};
+    $("oT").textContent=31;$("oC").textContent="⛅ Partly cloudy";$("oF").textContent="Demo data. Check your internet connection.";
+    $("oH").textContent="62%";$("oW").textContent="12 km/h";$("oP").textContent="1006 hPa";
+    $("days").innerHTML=["Today","Tue","Wed","Thu","Fri"].map((d,i)=>`<div class="day"><span>${d}</span><em>${["⛅","🌧️","⛈️","☀️","☁️"][i]}</em><small>${32-i}° / ${25-i}°</small></div>`).join("");
+  }
+  applyScene();
+}
+/* ---------- Inside (DHT11 via your ESP32/ESP8266) ---------- */
+let inside=null,lo=null,hi=null;
+function dhtUrl(){
+  const v=store("espIp");
+  if(v)return /^https:\/\//.test(v)?v:`http://${v}/data`;
+  return CFG.fbUrl.includes("YOUR-PROJECT")?CFG.dhtUrl:CFG.fbUrl;
+}
+async function loadDht(){
+  try{
+    const ctl=new AbortController();setTimeout(()=>ctl.abort(),3500);
+    const r=await fetch(dhtUrl(),{signal:ctl.signal,cache:"no-store"});if(!r.ok)throw 0;const j=await r.json();
+    if(!j||isNaN(+j.temperature))throw 0;
+    if(j.ts&&Date.now()-j.ts>CFG.staleAfter)throw 0;   // old Firebase data = ESP8266 is off
+    inside={t:+j.temperature,h:+j.humidity};setChip("sDht",true,"Inside: live DHT11");
+    lo=lo===null?inside.t:Math.min(lo,inside.t);hi=hi===null?inside.t:Math.max(hi,inside.t);
+    $("iT").textContent=inside.t.toFixed(1);$("iH").textContent=Math.round(inside.h);$("iH2").textContent=Math.round(inside.h)+"%";
+    $("iBar").style.width=Math.max(0,Math.min(100,(inside.t/50)*100))+"%";
+    const comfort=inside.t>30?"Warm indoors":inside.t<18?"Cool indoors":"Comfortable indoors";
+    $("iNote").textContent=comfort+" · updated "+new Date().toLocaleTimeString();
+    $("iMM").textContent=`Since page opened: low ${lo.toFixed(1)}°C, high ${hi.toFixed(1)}°C`;
+    const o=parseFloat($("oT").textContent);$("diff").textContent=isNaN(o)?"--":((inside.t-o>=0?"+":"")+(inside.t-o).toFixed(1)+"°C");
+  }catch(e){
+    // ESP8266 off or unreachable: show no value instead of fake data
+    inside=null;setChip("sDht",false,"Inside: ESP8266 offline");
+    $("iT").textContent="--";$("iH").textContent="--";$("iH2").textContent="--";$("diff").textContent="--";
+    $("iBar").style.width="0";
+    $("iNote").textContent="No data. The ESP8266 is off or not reachable. It will reconnect automatically when it is back on.";
+    $("iMM").textContent="";
+  }
+}
+/* sensor address panel */
+$("espIp").value=store("espIp")||"";
+$("cfgBtn").onclick=()=>{const p=$("cfgPanel");p.hidden=!p.hidden;$("cfgBtn").setAttribute("aria-expanded",!p.hidden)};
+$("saveIp").onclick=async()=>{
+  let v=$("espIp").value.trim();
+  if(!v){store("espIp",null);$("cfgMsg").textContent="Using the Firebase URL from the code. Testing…"}
+  else if(/^https:\/\//.test(v)){store("espIp",v);$("cfgMsg").textContent="Testing the URL…"}
+  else{
+    v=v.replace(/^https?:\/\//,"").replace(/\/.*$/,"");
+    if(!/^[\w.\-]+(:\d+)?$/.test(v)){$("cfgMsg").textContent="Enter an address like 192.168.0.105 or a full https URL";return}
+    store("espIp",v);$("cfgMsg").textContent="Testing http://"+v+"/data …";
+  }
+  await loadDht();
+  $("cfgMsg").textContent=$("sDht").classList.contains("ok")?"Connected. Reading live DHT11 data.":"No fresh data. Check that the ESP8266 is on and sending, and that the source address is correct.";
+};
+if(location.protocol==="https:"&&!/^https:/.test(dhtUrl()))$("cfgMsg").textContent="This page is on https, so browsers block a plain http ESP8266 address. Use the Firebase URL instead.";
+
+/* ---------- Animated scene ---------- */
+const cv=$("fx"),g=cv.getContext("2d");let W,H,P=[],clouds=[],stars=[],scene={type:"clear",night:false},flash=0,t0=0;
+function size(){const d=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;g.setTransform(d,0,0,d,0,0);build()}
+function build(){
+  const s=scene.type;P=[];clouds=[];stars=[];
+  const n=Math.min(260,Math.floor(W*H/6000));
+  if(s=="rain"||s=="storm")for(let i=0;i<n*(s=="storm"?1.5:1);i++)P.push({x:Math.random()*W,y:Math.random()*H,l:10+Math.random()*14,v:12+Math.random()*10});
+  if(s=="snow")for(let i=0;i<n*.7;i++)P.push({x:Math.random()*W,y:Math.random()*H,r:1.5+Math.random()*3.5,v:.6+Math.random()*1.6,p:Math.random()*6});
+  const cc={clear:3,hot:1,cloudy:9,rain:11,storm:12,snow:8,fog:10}[s];
+  for(let i=0;i<cc;i++)clouds.push({x:Math.random()*W,y:Math.random()*H*(s=="fog"?1:.5),s:.7+Math.random()*1.3,v:.1+Math.random()*.3});
+  if(scene.night&&(s=="clear"||s=="cloudy"))for(let i=0;i<90;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.7,r:Math.random()*1.4+.3,p:Math.random()*6});
+}
+function cloud(c,dark){
+  const w=190*c.s,a=dark?.8:.55;
+  const col=dark?[60,68,82]:scene.night?[120,130,150]:[255,255,255];
+  g.fillStyle=`rgba(${col},${a})`;g.filter="blur(10px)";
+  g.beginPath();g.ellipse(c.x,c.y,w*.5,34*c.s,0,0,7);g.ellipse(c.x-w*.22,c.y-16*c.s,w*.28,30*c.s,0,0,7);g.ellipse(c.x+w*.15,c.y-24*c.s,w*.3,36*c.s,0,0,7);g.fill();g.filter="none";
+}
+function sun(tm,hot){
+  const x=W>700?W*.8:W*.75,y=H*.17,R=hot?70:50;
+  const gl=g.createRadialGradient(x,y,0,x,y,R*(hot?5:3.4));gl.addColorStop(0,hot?"rgba(255,240,170,.95)":"rgba(255,245,200,.85)");gl.addColorStop(.25,"rgba(255,210,100,.4)");gl.addColorStop(1,"rgba(255,200,80,0)");
+  g.fillStyle=gl;g.fillRect(0,0,W,H);
+  g.save();g.translate(x,y);g.rotate(tm/9000);g.strokeStyle=`rgba(255,235,160,${hot?.45:.3})`;g.lineWidth=hot?5:3;
+  for(let i=0;i<16;i++){g.rotate(Math.PI/8);const p=.5+.5*Math.sin(tm/700+i);g.beginPath();g.moveTo(R*1.3,0);g.lineTo(R*(1.8+(hot?1.1:.6)*p),0);g.stroke()}
+  g.restore();g.fillStyle="#fff3b0";g.beginPath();g.arc(x,y,R,0,7);g.fill();
+  if(hot){g.fillStyle="rgba(255,140,40,.12)";const w=Math.sin(tm/500)*6;g.fillRect(0,H*.88+w,W,H*.12)}
+}
+function moon(){const x=W*.8,y=H*.17;g.fillStyle="#f3f1d8";g.beginPath();g.arc(x,y,34,0,7);g.fill();g.fillStyle="rgba(20,32,70,.9)";g.beginPath();g.arc(x+13,y-6,30,0,7);g.fill()}
+function frame(tm){
+  g.clearRect(0,0,W,H);const s=scene.type;
+  stars.forEach(o=>{g.fillStyle=`rgba(255,255,255,${.5+.5*Math.sin(tm/600+o.p)})`;g.beginPath();g.arc(o.x,o.y,o.r,0,7);g.fill()});
+  if(!scene.night&&(s=="clear"||s=="hot"))sun(tm,s=="hot");
+  else if(!scene.night&&s=="cloudy")sun(tm,false);
+  if(scene.night&&(s=="clear"||s=="cloudy"))moon();
+  const dark=s=="rain"||s=="storm";
+  clouds.forEach(c=>{c.x+=c.v;if(c.x-200*c.s>W)c.x=-200*c.s;cloud(c,dark)});
+  if(s=="fog"){g.fillStyle="rgba(210,216,222,.18)";g.fillRect(0,0,W,H)}
+  if(dark){g.strokeStyle="rgba(190,210,235,.55)";g.lineWidth=1.2;g.beginPath();
+    P.forEach(d=>{d.y+=d.v;d.x-=2;if(d.y>H){d.y=-20;d.x=Math.random()*W+40}g.moveTo(d.x,d.y);g.lineTo(d.x+2,d.y-d.l)});g.stroke();
+    if(s=="storm"){if(Math.random()<.004)flash=1;if(flash>0){g.fillStyle=`rgba(255,255,255,${flash*.6})`;g.fillRect(0,0,W,H);flash-=.06}}}
+  if(s=="snow"){g.fillStyle="rgba(255,255,255,.9)";P.forEach(f=>{f.y+=f.v;f.x+=Math.sin(tm/900+f.p)*.6;if(f.y>H+5){f.y=-5;f.x=Math.random()*W}g.beginPath();g.arc(f.x,f.y,f.r,0,7);g.fill()});
+    g.fillStyle="rgba(255,255,255,.35)";g.fillRect(0,H-6,W,6)}
+  requestAnimationFrame(frame);
+}
+function applyScene(){
+  const o=override;
+  const sc=o?{type:o,night:nightPrev&&o!="hot"}:sceneFor(live.code,live.temp,live.isDay);
+  scene=sc;document.body.className=sc.type+(sc.night?" night":"");build();
+}
+addEventListener("resize",size);
+
+/* demo scene buttons */
+const demo=document.querySelector(".demo");
+[["live","Live"],["clear","Sunny"],["hot","Hot summer"],["cloudy","Cloudy"],["rain","Rain"],["storm","Storm"],["snow","Winter snow"],["fog","Fog"]].forEach(([k,l])=>{
+  const b=document.createElement("button");b.textContent=l;if(k=="live")b.className="on";
+  b.onclick=()=>{override=k=="live"?null:k;demo.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");applyScene()};demo.appendChild(b)});
+
+const nb=document.createElement("button");nb.textContent="Night on/off";
+nb.onclick=()=>{nightPrev=!nightPrev;nb.classList.toggle("on",nightPrev);if(!override)override="clear";demo.querySelectorAll("button").forEach(x=>{if(x!==nb)x.classList.toggle("on",x.textContent=={clear:"Sunny"}[override])});applyScene()};
+demo.appendChild(nb);
+size();requestAnimationFrame(frame);
+loadWeather();loadDht();
+setInterval(loadWeather,CFG.weatherEvery);setInterval(loadDht,CFG.dhtEvery);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){loadWeather();loadDht()}});
+</script>
+</body>
+</html>
